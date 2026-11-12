@@ -1,10 +1,6 @@
 #设备平台
 CONFIG_TARGET_qualcommbe=y
 CONFIG_TARGET_qualcommbe_ipq95xx=y
-#设备列表
-CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_askey_sbe1v1k=y
-CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_nokia_beacon-10=y
-CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_xiaomi_be7000=y
-CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_xiaomi_be7000-es=y
+#设备列表（已精简：仅保留小米万兆 BE10000 标准版，移除 -es 及 askey/nokia/be7000）
+#注意：若你的机器实为 -es 硬件版本，请改回 xiaomi_be10000-es 并移除下面这行，否则有变砖风险
 CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_xiaomi_be10000=y
-CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_xiaomi_be10000-es=y

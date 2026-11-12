@@ -1,10 +1,11 @@
 #科学插件调整
-CONFIG_PACKAGE_luci-app-homeproxy=y
+CONFIG_PACKAGE_luci-app-homeproxy=n  # BE10000 自定义：移除（科学上网/代理）
 #增加插件
+CONFIG_PACKAGE_luci-app-adzero=y  # BE10000 自定义：新增 AdZero 广告拦截
 CONFIG_PACKAGE_luci-app-autoreboot=y
-CONFIG_PACKAGE_luci-app-gecoosac=y
+CONFIG_PACKAGE_luci-app-gecoosac=n  # BE10000 自定义：移除（商用 AP 控制）
 CONFIG_PACKAGE_luci-app-mini-diskmanager=y
-CONFIG_PACKAGE_luci-app-natmapt=y
+CONFIG_PACKAGE_luci-app-natmapt=n  # BE10000 自定义：移除（NAT 打洞）
 CONFIG_PACKAGE_luci-app-partexp=y
 CONFIG_PACKAGE_luci-app-samba4=y
 CONFIG_PACKAGE_luci-app-upnp=y
@@ -117,7 +118,7 @@ CONFIG_PACKAGE_sfdisk=y
 CONFIG_PACKAGE_sgdisk=y
 CONFIG_PACKAGE_smartmontools=y
 CONFIG_PACKAGE_smartmontools-drivedb=y
-CONFIG_PACKAGE_stuntman-client=y
+CONFIG_PACKAGE_stuntman-client=n  # BE10000 自定义：移除（STUN 客户端）
 CONFIG_PACKAGE_usb-modeswitch=y
 CONFIG_PACKAGE_usbmuxd=y
 CONFIG_PACKAGE_usbutils=y

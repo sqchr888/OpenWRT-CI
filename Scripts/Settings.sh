@@ -18,6 +18,10 @@ for file in "$ROUTER_TOOL" "$WIFI_UC"; do
 	[ -f "$file" ] && sed -i "s/ssid '.*'/ssid '$WRT_SSID'/g; s/key '.*'/key '$WRT_WORD'/g" "$file"
 done
 
+#将 WRT_SSID 真正作用到 mac80211.uc 默认 WiFi 名兜底（否则真机仍显示 OWRT）
+WIFI_UC_MAC="./package/network/config/wifi-scripts/files/lib/wifi/mac80211.uc"
+[ -f "$WIFI_UC_MAC" ] && sed -i "s/|| 'OWRT'/|| '$WRT_SSID'/g" "$WIFI_UC_MAC"
+
 CFG_FILE="./package/base-files/files/bin/config_generate"
 #修改默认IP地址
 sed -i "s/192\.168\.[0-9]*\.[0-9]*/$WRT_IP/g" $CFG_FILE

@@ -56,41 +56,43 @@ UPDATE_PACKAGE "kucat-config" "sirpdboy/luci-app-kucat-config" "master"
 UPDATE_PACKAGE "shadcn" "eamonxg/luci-theme-shadcn" "main"
 UPDATE_PACKAGE "vantage" "anothaDev/luci-theme-vantage" "main"
 
-UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
-UPDATE_PACKAGE "nikki" "nikkinikki-org/OpenWrt-nikki" "main"
-UPDATE_PACKAGE "openclash" "vernesong/OpenClash" "dev" "pkg"
-UPDATE_PACKAGE "passwall" "Openwrt-Passwall/openwrt-passwall" "main" "pkg"
-UPDATE_PACKAGE "passwall2" "Openwrt-Passwall/openwrt-passwall2" "main" "pkg"
+# UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"  # BE10000 自定义：移除（科学上网/代理）
+# UPDATE_PACKAGE "nikki" "nikkinikki-org/OpenWrt-nikki" "main"  # BE10000 自定义：移除（科学上网/代理）
+# UPDATE_PACKAGE "openclash" "vernesong/OpenClash" "dev" "pkg"  # BE10000 自定义：移除（科学上网/代理）
+# UPDATE_PACKAGE "passwall" "Openwrt-Passwall/openwrt-passwall" "main" "pkg"  # BE10000 自定义：移除（科学上网/代理）
+# UPDATE_PACKAGE "passwall2" "Openwrt-Passwall/openwrt-passwall2" "main" "pkg"  # BE10000 自定义：移除（科学上网/代理）
 
 UPDATE_PACKAGE "diskmanager" "4IceG/luci-app-mini-diskmanager" "main"
-UPDATE_PACKAGE "easytier" "EasyTier/luci-app-easytier" "main"
-UPDATE_PACKAGE "qmodem" "FUjr/QModem" "main"
-UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "axonhub gecoosac miniupnpd sing-box luci-app-homeproxy luci-app-timewol luci-app-upnp luci-app-wolplus luci-app-wolultra"
+# UPDATE_PACKAGE "easytier" "EasyTier/luci-app-easytier" "main"  # BE10000 自定义：移除（内网组网）
+# UPDATE_PACKAGE "qmodem" "FUjr/QModem" "main"  # BE10000 自定义：移除（5G 模组）
+UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "axonhub miniupnpd sing-box luci-app-homeproxy luci-app-timewol luci-app-upnp luci-app-wolplus luci-app-wolultra"  # BE10000 自定义：移除 gecoosac
 
 UPDATE_PACKAGE "diskman" "sbwml/luci-app-diskman" "main"
 UPDATE_PACKAGE "mosdns" "sbwml/luci-app-mosdns" "v5" "" "v2dat"
-UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"
-UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"
+# UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"  # BE10000 自定义：移除（网盘挂载）
+# UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"  # BE10000 自定义：移除（BT 下载）
 UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
+UPDATE_PACKAGE "adzero" "slobys/AdZero" "main"  # BE10000 自定义：新增 AdZero 广告拦截
 
-UPDATE_PACKAGE "ddns-go" "sirpdboy/luci-app-ddns-go" "main"
+# UPDATE_PACKAGE "ddns-go" "sirpdboy/luci-app-ddns-go" "main"  # BE10000 自定义：移除（DDNS）
 UPDATE_PACKAGE "netspeedtest" "sirpdboy/netspeedtest" "main" "" "homebox ookla-speedtest"
 UPDATE_PACKAGE "netwizard" "sirpdboy/luci-app-netwizard" "main"
 UPDATE_PACKAGE "partexp" "sirpdboy/luci-app-partexp" "main"
 UPDATE_PACKAGE "timecontrol" "sirpdboy/luci-app-timecontrol" "main"
 
-UPDATE_PACKAGE "natmapt" "muink/openwrt-natmapt" "master"
-UPDATE_PACKAGE "stuntman" "muink/openwrt-stuntman" "master"
-UPDATE_PACKAGE "luci-app-natmapt" "muink/luci-app-natmapt" "master"
+# UPDATE_PACKAGE "natmapt" "muink/openwrt-natmapt" "master"  # BE10000 自定义：移除（NAT 打洞）
+# UPDATE_PACKAGE "stuntman" "muink/openwrt-stuntman" "master"  # BE10000 自定义：移除（STUN）
+# UPDATE_PACKAGE "luci-app-natmapt" "muink/luci-app-natmapt" "master"  # BE10000 自定义：移除（NAT 打洞 UI）
 
-UPDATE_PACKAGE "airpi3000m-fancontrol" "LianXia233/luci-app-airpi3000m-fancontrol" "main"
-UPDATE_PACKAGE "chfs" "LianXia233/luci-app-chfs" "main"
-UPDATE_PACKAGE "fm350" "LianXia233/luci-app-fm350" "main"
-UPDATE_PACKAGE "h5000m-netmode" "LianXia233/luci-app-h5000m-netmode" "main"
-UPDATE_PACKAGE "mt5700" "LianXia233/luci-app-mt5700" "main"
-UPDATE_PACKAGE "mt5700m" "LianXia233/luci-app-mt5700m" "main"
-UPDATE_PACKAGE "netmonitor" "LianXia233/luci-app-netmonitor" "main"
-UPDATE_PACKAGE "qmodem-generic" "LianXia233/luci-app-qmodem-generic" "main"
+# BE10000 自定义：移除全部 5G/模组类插件（万兆路由用不到）
+# UPDATE_PACKAGE "airpi3000m-fancontrol" "LianXia233/luci-app-airpi3000m-fancontrol" "main"
+# UPDATE_PACKAGE "chfs" "LianXia233/luci-app-chfs" "main"
+# UPDATE_PACKAGE "fm350" "LianXia233/luci-app-fm350" "main"
+# UPDATE_PACKAGE "h5000m-netmode" "LianXia233/luci-app-h5000m-netmode" "main"
+# UPDATE_PACKAGE "mt5700" "LianXia233/luci-app-mt5700" "main"
+# UPDATE_PACKAGE "mt5700m" "LianXia233/luci-app-mt5700m" "main"
+# UPDATE_PACKAGE "netmonitor" "LianXia233/luci-app-netmonitor" "main"
+# UPDATE_PACKAGE "qmodem-generic" "LianXia233/luci-app-qmodem-generic" "main"
 
 #更新软件包版本
 UPDATE_VERSION() {
