@@ -72,4 +72,34 @@ if [[ "${WRT_TARGET^^}" == *"QUALCOMMBE"* ]]; then
 		sed -i 's/ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 sfp" "wan"/ucidef_set_interfaces_lan_wan "lan2 lan3 lan4 sfp 10G" "lan1"/' "$NET_SCRIPT"
 		echo "be10000: 默认 WAN 已改到 lan1，10G 归入 LAN"
 	fi
+
+	#BE10000 自定义：首次启动默认项（写入 base-files overlay，烤进镜像，仅首次启动执行一次）
+	UCI_DEF_DIR="./package/base-files/files/etc/uci-defaults"
+	mkdir -p "$UCI_DEF_DIR"
+
+	#① 默认 Web 管理界面语言设为简体中文（源码自带 zh_Hans 语言包，已随 CONFIG_LUCI_LANG_zh_Hans=y 编入）
+	cat > "$UCI_DEF_DIR/99-default-lang" <<'EOF'
+#!/bin/sh
+# BE10000：默认 Web 管理界面语言设为简体中文(zh_Hans)
+if [ -x /usr/bin/uci ]; then
+	uci -q set luci.main.lang='zh_Hans'
+	uci -q commit luci
+fi
+exit 0
+EOF
+	chmod +x "$UCI_DEF_DIR/99-default-lang"
+	echo "be10000: 已写入默认语言 uci-defaults (zh_Hans)"
+
+	#② 默认 WAN 网络模式设为 PPPoE（端口已在上面改到 lan1；用户名/密码留空，首次启动后请在 LuCI 填写）
+	cat > "$UCI_DEF_DIR/99-wan-pppoe" <<'EOF'
+#!/bin/sh
+# BE10000：默认 WAN 网络模式设为 PPPoE（拨号账号/密码首次启动后于 LuCI 填写）
+if [ -x /usr/bin/uci ] && uci -q get network.wan >/dev/null 2>&1; then
+	uci -q set network.wan.proto='pppoe'
+	uci -q commit network
+fi
+exit 0
+EOF
+	chmod +x "$UCI_DEF_DIR/99-wan-pppoe"
+	echo "be10000: 已写入默认 WAN 模式 uci-defaults (pppoe)"
 fi
