@@ -55,3 +55,21 @@ if [[ "${WRT_TARGET^^}" == *"QUALCOMMAX"* ]]; then
 		echo "qualcommax set up nowifi successfully!"
 	fi
 fi
+
+#BE10000 端口调整（qualcommbe/ipq95xx）：10G 口改名 10G，默认 WAN 改到 lan1
+if [[ "${WRT_TARGET^^}" == *"QUALCOMMBE"* ]]; then
+	#把 10G RJ45 口（设备树 label="wan"）改名为 "10G"，避免与 WAN 角色混淆
+	#注意：MAC 基址用的是节点名 &ppe_port5（label-mac-device），与 label 无关，改名不影响 MAC
+	DTS_FILE="./target/linux/qualcommbe/dts/ipq9570-be10000.dts"
+	if [ -f "$DTS_FILE" ]; then
+		sed -i 's/label = "wan"/label = "10G"/' "$DTS_FILE"
+		echo "be10000: 10G 口已改名 10G"
+	fi
+	#默认 WAN 从 10G 口(lan_wan)改绑到 lan1；10G 口归入 LAN 桥
+	#原默认：ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 sfp" "wan"
+	NET_SCRIPT=$(grep -rl "ipq95xx_setup_interfaces" ./target/linux/qualcommbe/ 2>/dev/null | head -1)
+	if [ -n "$NET_SCRIPT" ]; then
+		sed -i 's/ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 sfp" "wan"/ucidef_set_interfaces_lan_wan "lan2 lan3 lan4 sfp 10G" "lan1"/' "$NET_SCRIPT"
+		echo "be10000: 默认 WAN 已改到 lan1，10G 归入 LAN"
+	fi
+fi
