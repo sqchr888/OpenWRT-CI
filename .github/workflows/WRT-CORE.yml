@@ -173,6 +173,9 @@ jobs:
           # 必须在 feeds update -a 之前写入，否则 install -a 不会拉取这两个包
           echo "src-git honk https://github.com/kenzok8/openwrt-honk" >> feeds.conf.default
 
+          # 添加 sqchr888/luci-app-iperf3 外部 feed（已汉化的 iPerf3 LuCI 界面，fork 自 Gevatter-Tod）
+          echo "src-git iperf3 https://github.com/sqchr888/luci-app-iperf3" >> feeds.conf.default
+
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
