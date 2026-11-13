@@ -105,6 +105,7 @@ CONFIG_PACKAGE_fullconenat-sonic=y
 CONFIG_PACKAGE_gdisk=y
 CONFIG_PACKAGE_htop=y
 CONFIG_PACKAGE_iperf3=y
+CONFIG_PACKAGE_luci-app-iperf3=y  # BE10000 自定义：iPerf3 的 LuCI 图形界面（fork 自 Gevatter-Tod 并已汉化，见 sqchr888/luci-app-iperf3）
 CONFIG_PACKAGE_ip-full=y
 CONFIG_PACKAGE_libimobiledevice=y
 CONFIG_PACKAGE_libnvme=y
