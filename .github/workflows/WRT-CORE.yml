@@ -169,6 +169,10 @@ jobs:
         run: |
           cd ./wrt/
 
+          # 添加 kenzok8/openwrt-honk 外部 feed（honk eBPF 透明代理 + luci-app-honk 界面）
+          # 必须在 feeds update -a 之前写入，否则 install -a 不会拉取这两个包
+          echo "src-git honk https://github.com/kenzok8/openwrt-honk" >> feeds.conf.default
+
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
