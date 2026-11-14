@@ -169,10 +169,17 @@ jobs:
         run: |
           cd ./wrt/
 
-          # 添加 sqchr888/luci-app-iperf3 外部 feed（已汉化的 iPerf3 LuCI 界面，fork 自 Gevatter-Tod）
-          echo "src-git iperf3 https://github.com/sqchr888/luci-app-iperf3" >> feeds.conf.default
-
           ./scripts/feeds update -a
+
+          # 引入 sqchr888/luci-app-iperf3（已汉化的 iPerf3 LuCI 界面，fork 自 Gevatter-Tod）
+          # 该仓库是标准 luci 应用布局（Makefile 用 `include ../../luci.mk`），必须放进
+          # feeds/luci/applications/ 才能被 feeds 正确索引——
+          # 若作为独立 src-git feed，../../luci.mk 会解析到不存在的 feeds/luci.mk，
+          # 导致 .files-packageinfo.mk 生成失败、整条 feed 被 Ignoring、包被 defconfig 丢弃。
+          rm -rf feeds/luci/applications/luci-app-iperf3
+          git clone --depth 1 https://github.com/sqchr888/luci-app-iperf3 feeds/luci/applications/luci-app-iperf3
+          ./scripts/feeds update luci
+
           ./scripts/feeds install -a
 
       - name: Custom Packages
