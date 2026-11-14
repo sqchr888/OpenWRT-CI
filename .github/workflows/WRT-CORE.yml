@@ -183,6 +183,31 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Handles.sh
           $GITHUB_WORKSPACE/.github/scripts/prepare-i2c-tools.sh
 
+          # 引入 NaiLink 代理包（slobys/NaiLink monorepo 的 openwrt/ 子目录；基于 daed，与 honk 同属 eBPF 家族）
+          # 覆盖适配版 Makefile（预编译二进制从 ./dl/nailink/ 读取，由后续步骤从 release APK 提取）
+          rm -rf ./package/nailink
+          git clone --depth=1 --single-branch --branch main https://github.com/slobys/NaiLink.git ./tmp-nailink
+          cp -rf ./tmp-nailink/openwrt/* ./package/nailink/
+          rm -rf ./tmp-nailink
+          cp -f $GITHUB_WORKSPACE/Config/nailink/Makefile ./package/nailink/Makefile
+          echo "NaiLink package 引入完成: $(ls ./package/nailink/Makefile && echo OK)"
+
+          # 下载 NaiLink 最新 release 的 aarch64 APK，提取预编译二进制与前端 JS
+          # （overlay 仅 51MB，无法刷后装，必须从 release 提取预编译产物编进固件 squashfs）
+          mkdir -p ./dl/nailink ./package/nailink/htdocs
+          NL_TAG=$(curl -sL https://api.github.com/repos/slobys/NaiLink/releases/latest | jq -r .tag_name)
+          NL_APK=$(curl -sL "https://api.github.com/repos/slobys/NaiLink/releases/tags/$NL_TAG" | jq -r '.assets[].browser_download_url' | grep -iE 'aarch64|arm64' | grep -iE '\.apk$' | head -1)
+          echo "NaiLink release: $NL_TAG  apk: $NL_APK"
+          curl -sL "$NL_APK" -o /tmp/nailink.apk
+          mkdir -p /tmp/napk
+          tar -xzf /tmp/nailink.apk -C /tmp/napk 2>/dev/null || tar -xf /tmp/nailink.apk -C /tmp/napk
+          cp -f /tmp/napk/usr/bin/daed ./dl/nailink/daed
+          cp -f /tmp/napk/usr/libexec/daed/btf-probe ./dl/nailink/btf-probe
+          cp -f /tmp/napk/usr/libexec/daed/luci-proxy ./dl/nailink/luci-proxy
+          cp -f /tmp/napk/www/luci-static/resources/view/daed-router/*.js ./package/nailink/htdocs/ 2>/dev/null || true
+          echo "NaiLink 预编译二进制: $(ls -la ./dl/nailink/)"
+          echo "NaiLink 前端 JS: $(ls ./package/nailink/htdocs/ 2>/dev/null | wc -l) 个"
+
       - name: Custom Settings
         run: |
           cd ./wrt/
