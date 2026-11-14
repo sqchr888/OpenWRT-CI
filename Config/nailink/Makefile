@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # 适配版 Makefile（sqchr888）：原版 slobys/NaiLink openwrt/Makefile 要求构建环境预先注入
 # DAED_BINARY / DAED_BTF_PROBE / DAED_LUCI_PROXY 三个预编译二进制（官方 CI 用 runtime.py 生成）。
-# 此处改为默认从 $(DL_DIR)/nailink/ 读取（CI 下载 NaiLink release APK 提取），仍允许外部变量覆盖。
+# 此处改为默认从 $(DL_DIR)/nailink/ 读取（CI 在编译前从 NaiLink release 提取并放入 ./dl/nailink/），
+# 仍允许外部变量覆盖。
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=daed-router
@@ -11,8 +12,7 @@ PKG_LICENSE:=MIT AGPL-3.0-only
 PKG_MAINTAINER:=slobys (Makefile patched by sqchr888 for prebuilt binary injection)
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
-# 适配：预编译二进制默认从 $(DL_DIR)/nailink/ 读取；CI 在编译前把从 NaiLink release APK 提取的
-# daed / btf-probe / luci-proxy 放入 ./dl/nailink/。允许外部 DAED_* 变量覆盖（进阶用法）。
+# 适配：预编译二进制默认从 $(DL_DIR)/nailink/ 读取；CI 在编译前放入 ./dl/nailink/。允许外部覆盖。
 DAED_BINARY?=$(DL_DIR)/nailink/daed
 DAED_BTF_PROBE?=$(DL_DIR)/nailink/btf-probe
 DAED_LUCI_PROXY?=$(DL_DIR)/nailink/luci-proxy
@@ -44,57 +44,55 @@ define Package/daed-router/conffiles
 endef
 
 define Build/Prepare
-  $(INSTALL_DIR) $(PKG_BUILD_DIR)
-  test -n "$(DAED_BINARY)" && test -f "$(DAED_BINARY)"
-  $(CP) "$(DAED_BINARY)" $(PKG_BUILD_DIR)/daed
-  test -n "$(DAED_BTF_PROBE)" && test -f "$(DAED_BTF_PROBE)"
-  $(CP) "$(DAED_BTF_PROBE)" $(PKG_BUILD_DIR)/btf-probe
-  test -n "$(DAED_LUCI_PROXY)" && test -f "$(DAED_LUCI_PROXY)"
-  $(CP) "$(DAED_LUCI_PROXY)" $(PKG_BUILD_DIR)/luci-proxy
+	$(INSTALL_DIR) $(PKG_BUILD_DIR)
+	test -n "$(DAED_BINARY)" && test -f "$(DAED_BINARY)"
+	$(CP) "$(DAED_BINARY)" $(PKG_BUILD_DIR)/daed
+	test -n "$(DAED_BTF_PROBE)" && test -f "$(DAED_BTF_PROBE)"
+	$(CP) "$(DAED_BTF_PROBE)" $(PKG_BUILD_DIR)/btf-probe
+	test -n "$(DAED_LUCI_PROXY)" && test -f "$(DAED_LUCI_PROXY)"
+	$(CP) "$(DAED_LUCI_PROXY)" $(PKG_BUILD_DIR)/luci-proxy
 endef
 
 define Build/Configure
 endef
-
 define Build/Compile
 endef
 
 define Package/daed-router/install
-  $(INSTALL_DIR) $(1)/usr/libexec/daed
-  $(INSTALL_BIN) ./network-check.sh $(1)/usr/libexec/daed/network-check
-  $(INSTALL_DIR) $(1)/usr/bin $(1)/etc/init.d $(1)/etc/config
-  $(INSTALL_BIN) $(PKG_BUILD_DIR)/daed $(1)/usr/bin/daed
-  $(INSTALL_DIR) $(1)/usr/sbin
-  $(INSTALL_BIN) ./install.sh $(1)/usr/sbin/daed-router-setup
-  $(INSTALL_BIN) ./files/nailink $(1)/usr/sbin/nailink
-  $(INSTALL_BIN) ./files/daed.init $(1)/etc/init.d/daed
-  $(INSTALL_CONF) ./files/daed.config $(1)/etc/config/daed
-  $(INSTALL_DIR) $(1)/usr/libexec/daed
-  $(INSTALL_DIR) $(1)/usr/share/daed-router
-  # Keep the one-shot task outside init.d: package upgrades must not stop it.
-  $(INSTALL_BIN) ./files/maintenance.init $(1)/usr/libexec/daed/nailink-maintenance
-  $(INSTALL_BIN) ./files/daed-check $(1)/usr/libexec/daed/check
-  $(INSTALL_BIN) ./files/subscription-proxy $(1)/usr/libexec/daed/subscription-proxy
-  $(INSTALL_BIN) $(PKG_BUILD_DIR)/btf-probe $(1)/usr/libexec/daed/btf-probe
-  $(INSTALL_BIN) $(PKG_BUILD_DIR)/luci-proxy $(1)/usr/libexec/daed/luci-proxy
-  # dae resolves assets under its application name; OpenWrt owns them in v2ray.
-  $(INSTALL_DIR) $(1)/usr/share/daed
-  $(LN) ../v2ray/geosite.dat $(1)/usr/share/daed/geosite.dat
-  $(LN) ../v2ray/geoip.dat $(1)/usr/share/daed/geoip.dat
-  echo '$(PKG_VERSION)-$(PKG_RELEASE)' > $(1)/usr/share/daed-router/version
-  $(INSTALL_DIR) $(1)/lib/upgrade/keep.d
-  $(INSTALL_DATA) ./files/keep-daed $(1)/lib/upgrade/keep.d/daed-router
+	$(INSTALL_DIR) $(1)/usr/libexec/daed
+	$(INSTALL_BIN) ./network-check.sh $(1)/usr/libexec/daed/network-check
+	$(INSTALL_DIR) $(1)/usr/bin $(1)/etc/init.d $(1)/etc/config
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/daed $(1)/usr/bin/daed
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) ./install.sh $(1)/usr/sbin/daed-router-setup
+	$(INSTALL_BIN) ./files/nailink $(1)/usr/sbin/nailink
+	$(INSTALL_BIN) ./files/daed.init $(1)/etc/init.d/daed
+	$(INSTALL_CONF) ./files/daed.config $(1)/etc/config/daed
+	$(INSTALL_DIR) $(1)/usr/libexec/daed $(1)/usr/share/daed-router
+	# Keep the one-shot task outside init.d: package upgrades must not stop it.
+	$(INSTALL_BIN) ./files/maintenance.init $(1)/usr/libexec/daed/nailink-maintenance
+	$(INSTALL_BIN) ./files/daed-check $(1)/usr/libexec/daed/check
+	$(INSTALL_BIN) ./files/subscription-proxy $(1)/usr/libexec/daed/subscription-proxy
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/btf-probe $(1)/usr/libexec/daed/btf-probe
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/luci-proxy $(1)/usr/libexec/daed/luci-proxy
+	# dae resolves assets under its application name; OpenWrt owns them in v2ray.
+	$(INSTALL_DIR) $(1)/usr/share/daed
+	$(LN) ../v2ray/geosite.dat $(1)/usr/share/daed/geosite.dat
+	$(LN) ../v2ray/geoip.dat $(1)/usr/share/daed/geoip.dat
+	echo '$(PKG_VERSION)-$(PKG_RELEASE)' > $(1)/usr/share/daed-router/version
+	$(INSTALL_DIR) $(1)/lib/upgrade/keep.d
+	$(INSTALL_DATA) ./files/keep-daed $(1)/lib/upgrade/keep.d/daed-router
 endef
 
 define Package/luci-app-daed-router/install
-  $(INSTALL_DIR) $(1)/www/luci-static/resources/view/daed-router
-  $(INSTALL_DATA) ./htdocs/*.js $(1)/www/luci-static/resources/view/daed-router/
-  $(INSTALL_DIR) $(1)/usr/share/luci/menu.d $(1)/usr/share/rpcd/acl.d $(1)/usr/libexec/rpcd
-  $(INSTALL_DATA) ./files/menu.json $(1)/usr/share/luci/menu.d/luci-app-daed-router.json
-  $(INSTALL_DATA) ./files/acl.json $(1)/usr/share/rpcd/acl.d/luci-app-daed-router.json
-  $(INSTALL_BIN) ./files/rpcd-daed $(1)/usr/libexec/rpcd/daed-router
-  $(INSTALL_DIR) $(1)/www/cgi-bin
-  $(INSTALL_BIN) ./files/luci-cgi $(1)/www/cgi-bin/daed-router
+	$(INSTALL_DIR) $(1)/www/luci-static/resources/view/daed-router
+	$(INSTALL_DATA) ./htdocs/*.js $(1)/www/luci-static/resources/view/daed-router/
+	$(INSTALL_DIR) $(1)/usr/share/luci/menu.d $(1)/usr/share/rpcd/acl.d $(1)/usr/libexec/rpcd
+	$(INSTALL_DATA) ./files/menu.json $(1)/usr/share/luci/menu.d/luci-app-daed-router.json
+	$(INSTALL_DATA) ./files/acl.json $(1)/usr/share/rpcd/acl.d/luci-app-daed-router.json
+	$(INSTALL_BIN) ./files/rpcd-daed $(1)/usr/libexec/rpcd/daed-router
+	$(INSTALL_DIR) $(1)/www/cgi-bin
+	$(INSTALL_BIN) ./files/luci-cgi $(1)/www/cgi-bin/daed-router
 endef
 
 define Package/luci-app-daed-router/postinst
