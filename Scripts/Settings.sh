@@ -124,7 +124,8 @@ EOF
 	# 正确做法：构建期直接覆盖包自带的 ACL 源文件，让包带着修好的 ACL 编进镜像
 	#(全新刷写/升级均生效，无需首启 uci-defaults)。固定版源文件见 Config/xiaomi-control-acl/。
 	XM_ACL_SRC="${GITHUB_WORKSPACE:-.}/Config/xiaomi-control-acl/luci-app-xiaomi-control.json"
-	XM_ACL_DST=$(find ./feeds -name 'luci-app-xiaomi-control.json' 2>/dev/null | head -1)
+	# 修复：包实际装在 package/<feed>/ 下(find ./feeds 搜不到)，且需精确锁定 rpcd/acl.d 那个 ACL
+	XM_ACL_DST=$(find ./feeds ./package -path '*rpcd/acl.d/luci-app-xiaomi-control.json' 2>/dev/null | head -1)
 	if [ -n "$XM_ACL_DST" ] && [ -f "$XM_ACL_SRC" ]; then
 		cp -f "$XM_ACL_SRC" "$XM_ACL_DST"
 		chmod 644 "$XM_ACL_DST"
