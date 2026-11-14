@@ -102,4 +102,19 @@ exit 0
 EOF
 	chmod +x "$UCI_DEF_DIR/99-wan-pppoe"
 	echo "be10000: 已写入默认 WAN 模式 uci-defaults (pppoe)"
+
+	#②续：构建期直接把 LuCI 默认语言烤进镜像的 shipped 默认配置
+	# luci-base 把 `option lang 'auto'` 写进 root/etc/config/luci 随镜像发布，且它本身
+	# 不带任何 uci-defaults 脚本；只靠 firstboot 的 99-default-lang 会在「保留配置升级」
+	# 时失效(旧的 /etc/config/luci 被保留)。这里在构建期改掉 shipped 默认值，保证全新
+	# 刷写后默认界面语言就是简体中文，且不依赖 firstboot。
+	LUCI_DEF_CONF="./feeds/luci/modules/luci-base/root/etc/config/luci"
+	# 兜底：若 luci feed 目录名不是 feeds/luci（如 immortalwrt 自定义），自动定位
+	[ -f "$LUCI_DEF_CONF" ] || LUCI_DEF_CONF=$(find ./feeds -path '*luci-base/root/etc/config/luci' 2>/dev/null | head -1)
+	if [ -n "$LUCI_DEF_CONF" ] && [ -f "$LUCI_DEF_CONF" ]; then
+		sed -i "s/option lang 'auto'/option lang 'zh_Hans'/" "$LUCI_DEF_CONF"
+		echo "be10000: 已将 luci-base shipped 默认语言改为 zh_Hans(构建期烤入) -> $LUCI_DEF_CONF"
+	else
+		echo "be10000: 未找到 luci-base 默认配置，跳过语言烤入"
+	fi
 fi
