@@ -197,9 +197,10 @@ jobs:
 
           # ===== 提取预编译二进制（daed / btf-probe / luci-proxy）=====
           # overlay 仅 51MB，NaiLink 本体 ~52MiB，刷后必爆 → 必须提取预编译产物编进固件 squashfs。
-          # 架构：BE10000 = IPQ95XX = aarch64_cortex-a73。daed/luci-proxy 仅存在于 daed-router-*.apk；
+          # 架构：BE10000 = IPQ95XX = aarch64_cortex-a73。daed/luci-proxy 仅存在于 daed-router 安装包；
           #   btf-probe 另有独立资产 btf-probe-arm64（体积小更可靠）。
-          # OpenWrt .apk 实为 gzip tar，内含 control.tar.gz + data.tar.gz，需二次解包。
+          # 关键坑：NaiLink 的 .apk 是 apk-tools 新包格式（魔数 ADBd，非 gzip，tar 解不开）；
+          #   同 release 的 .ipk 才是标准 gzip tar（内含 data.tar.gz），故此处用 .ipk。
           mkdir -p ./dl/nailink
           NL_TAG=$(curl -fsSL https://api.github.com/repos/slobys/NaiLink/releases/latest | jq -r .tag_name)
           NL_VER=${NL_TAG#openwrt-v}
@@ -210,13 +211,17 @@ jobs:
           curl -fsSL "$NL_BASE/btf-probe-arm64" -o ./dl/nailink/btf-probe
           chmod +x ./dl/nailink/btf-probe
 
-          # 2) daed + luci-proxy 从架构专属 apk 提取（自发现路径，规避 apk 内部结构硬编码）
-          NL_APK_URL="$NL_BASE/daed-router-${NL_VER}-aarch64_cortex-a73.apk"
-          echo "下载 apk: $NL_APK_URL"
-          curl -fsSL "$NL_APK_URL" -o /tmp/nailink.apk
+          # 2) daed + luci-proxy 从架构专属 ipk 提取（ipk = gzip tar，内含 data.tar.gz，二次解包）
+          NL_IPK_URL="$NL_BASE/daed-router-${NL_VER}-aarch64_cortex-a73.ipk"
+          echo "下载 ipk: $NL_IPK_URL"
+          curl -fsSL "$NL_IPK_URL" -o /tmp/nailink.ipk
+          # gzip 合法性自检：避免下到 404/错误页导致 tar 静默失败（上一版 apk 就踩了这个坑）
+          if ! gzip -t /tmp/nailink.ipk 2>/dev/null; then
+            echo "FAIL ipk 不是合法 gzip（可能下载失败或资产名已变更）"; exit 1
+          fi
           rm -rf /tmp/napk /tmp/napk_data
           mkdir -p /tmp/napk /tmp/napk_data
-          tar -xzf /tmp/nailink.apk -C /tmp/napk
+          tar -xzf /tmp/nailink.ipk -C /tmp/napk
           if [ -f /tmp/napk/data.tar.gz ]; then
             tar -xzf /tmp/napk/data.tar.gz -C /tmp/napk_data
           else
