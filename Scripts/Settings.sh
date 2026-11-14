@@ -117,4 +117,19 @@ EOF
 	else
 		echo "be10000: 未找到 luci-base 默认配置，跳过语言烤入"
 	fi
+
+	#③ BE10000：修复 luci-app-xiaomi-control 风扇/RGB 取不到数据
+	# 该 ACL 文件归 luci-app-xiaomi-control 包自身所有(构建时装包会释放此路径)，
+	# 故不能用 package/base-files/files 覆盖(会被包的释放动作覆盖回残缺版)。
+	# 正确做法：构建期直接覆盖包自带的 ACL 源文件，让包带着修好的 ACL 编进镜像
+	#(全新刷写/升级均生效，无需首启 uci-defaults)。固定版源文件见 Config/xiaomi-control-acl/。
+	XM_ACL_SRC="${GITHUB_WORKSPACE:-.}/Config/xiaomi-control-acl/luci-app-xiaomi-control.json"
+	XM_ACL_DST=$(find ./feeds -name 'luci-app-xiaomi-control.json' 2>/dev/null | head -1)
+	if [ -n "$XM_ACL_DST" ] && [ -f "$XM_ACL_SRC" ]; then
+		cp -f "$XM_ACL_SRC" "$XM_ACL_DST"
+		chmod 644 "$XM_ACL_DST"
+		echo "be10000: 已将 luci-app-xiaomi-control ACL 覆盖为修复版 -> $XM_ACL_DST"
+	else
+		echo "be10000: 未找到 luci-app-xiaomi-control 的 ACL 源/目标，跳过 ACL 修复(源=$XM_ACL_SRC 目标=$XM_ACL_DST)"
+	fi
 fi
