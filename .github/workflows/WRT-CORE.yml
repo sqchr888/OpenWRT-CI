@@ -169,6 +169,10 @@ jobs:
         run: |
           cd ./wrt/
 
+          # 添加 kenzok8/openwrt-honk 外部 feed（honk eBPF 透明代理 + luci-app-honk 界面）
+          # 必须在 feeds update -a 之前写入，否则 install -a 不会拉取这两个包
+          echo "src-git honk https://github.com/kenzok8/openwrt-honk" >> feeds.conf.default
+
           ./scripts/feeds update -a
 
           # 引入 sqchr888/luci-app-iperf3（已汉化的 iPerf3 LuCI 界面，fork 自 Gevatter-Tod）
@@ -189,65 +193,6 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Packages.sh
           $GITHUB_WORKSPACE/Scripts/Handles.sh
           $GITHUB_WORKSPACE/.github/scripts/prepare-i2c-tools.sh
-
-          # ===== 引入 NaiLink 代理包（slobys/NaiLink，基于 daed 的 eBPF 透明代理；与已移除的 honk 同族）=====
-          # 仓库 openwrt/ 子目录即 OpenWrt 包源码；覆盖为适配版 Makefile（预编译二进制默认从 ./dl/nailink/ 读取）。
-          set -euo pipefail
-          rm -rf ./package/nailink ./tmp-nailink
-          git clone --depth=1 --single-branch --branch main https://github.com/slobys/NaiLink.git ./tmp-nailink
-          mkdir -p ./package/nailink
-          cp -rf ./tmp-nailink/openwrt/. ./package/nailink/
-          rm -rf ./tmp-nailink
-          cp -f $GITHUB_WORKSPACE/Config/nailink/Makefile ./package/nailink/Makefile
-          echo "NaiLink package 引入完成: $(ls -la ./package/nailink/Makefile | awk '{print $NF, $5"B"}')"
-          echo "NaiLink 源文件: files/ $(ls ./package/nailink/files/ | wc -l) 个, htdocs/ $(ls ./package/nailink/htdocs/ | wc -l) 个 js"
-
-          # ===== 提取预编译二进制（daed / btf-probe / luci-proxy）=====
-          # overlay 仅 51MB，NaiLink 本体 ~52MiB，刷后必爆 → 必须提取预编译产物编进固件 squashfs。
-          # 架构：BE10000 = IPQ95XX = aarch64_cortex-a73。daed/luci-proxy 仅存在于 daed-router 安装包；
-          #   btf-probe 另有独立资产 btf-probe-arm64（体积小更可靠）。
-          # 关键坑：NaiLink 的 .apk 是 apk-tools 新包格式（魔数 ADBd，非 gzip，tar 解不开）；
-          #   同 release 的 .ipk 才是标准 gzip tar（内含 data.tar.gz），故此处用 .ipk。
-          mkdir -p ./dl/nailink
-          NL_TAG=$(curl -fsSL https://api.github.com/repos/slobys/NaiLink/releases/latest | jq -r .tag_name)
-          NL_VER=${NL_TAG#openwrt-v}
-          NL_BASE="https://github.com/slobys/NaiLink/releases/download/$NL_TAG"
-          echo "NaiLink release: $NL_TAG (ver=$NL_VER)"
-
-          # 1) standalone btf-probe（arm64 == aarch64）
-          curl -fsSL "$NL_BASE/btf-probe-arm64" -o ./dl/nailink/btf-probe
-          chmod +x ./dl/nailink/btf-probe
-
-          # 2) daed + luci-proxy 从架构专属 ipk 提取（ipk = gzip tar，内含 data.tar.gz，二次解包）
-          NL_IPK_URL="$NL_BASE/daed-router-${NL_VER}-aarch64_cortex-a73.ipk"
-          echo "下载 ipk: $NL_IPK_URL"
-          curl -fsSL "$NL_IPK_URL" -o /tmp/nailink.ipk
-          # gzip 合法性自检：避免下到 404/错误页导致 tar 静默失败（上一版 apk 就踩了这个坑）
-          if ! gzip -t /tmp/nailink.ipk 2>/dev/null; then
-            echo "FAIL ipk 不是合法 gzip（可能下载失败或资产名已变更）"; exit 1
-          fi
-          rm -rf /tmp/napk /tmp/napk_data
-          mkdir -p /tmp/napk /tmp/napk_data
-          tar -xzf /tmp/nailink.ipk -C /tmp/napk
-          if [ -f /tmp/napk/data.tar.gz ]; then
-            tar -xzf /tmp/napk/data.tar.gz -C /tmp/napk_data
-          else
-            cp -rf /tmp/napk/. /tmp/napk_data/
-          fi
-          DAED_BIN=$(find /tmp/napk_data -type f -name daed | head -1)
-          LUCIPROXY_BIN=$(find /tmp/napk_data -type f -path '*daed/luci-proxy' | head -1)
-          if [ -n "$DAED_BIN" ]; then cp -f "$DAED_BIN" ./dl/nailink/daed && chmod +x ./dl/nailink/daed; fi
-          if [ -n "$LUCIPROXY_BIN" ]; then cp -f "$LUCIPROXY_BIN" ./dl/nailink/luci-proxy && chmod +x ./dl/nailink/luci-proxy; fi
-
-          # 3) 校验三个二进制都到位（缺失则显式失败，避免后续编出空包）
-          echo "--- NaiLink 预编译二进制校验 ---"
-          for b in daed btf-probe luci-proxy; do
-            if [ -s "./dl/nailink/$b" ]; then
-              echo "OK   $b  $(stat -c%s ./dl/nailink/$b) bytes"
-            else
-              echo "FAIL $b 缺失或为空！"; exit 1
-            fi
-          done
 
       - name: Custom Settings
         run: |
