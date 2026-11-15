@@ -194,6 +194,28 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Handles.sh
           $GITHUB_WORKSPACE/.github/scripts/prepare-i2c-tools.sh
 
+          # ===== 引入 Xiaomi NFC 包（VIKINGYFY/immortalwrt PR#225，作者尚未合并）=====
+          # PR: https://github.com/VIKINGYFY/immortalwrt/pull/225
+          # 板载 NTAG 标签(NFC) 的 LuCI 配置界面，作者实测 BE10000/BE7000 可用。
+          # 上游 owrt 分支尚未合并，故从 PR.patch 直接应用 11 个新文件到 package/emortal/。
+          # 该包 LUCI_DEFAULT:=y 默认选中；GENERAL.txt 另加了显式 CONFIG_PACKAGE 双保险。
+          # 幂等：若上游哪天合并了 PR（源码已含此包），则跳过注入；校验失败显式报错避免编空包。
+          NFC_PKG="./package/emortal/luci-app-xiaomi-nfc"
+          if [ -f "$NFC_PKG/Makefile" ]; then
+            echo "NFC 包已在上游源码中（PR#225 可能已合并），跳过注入"
+          else
+            echo "从 PR#225 注入 Xiaomi NFC 包 ..."
+            curl -fsSL --retry 3 https://github.com/VIKINGYFY/immortalwrt/pull/225.patch -o /tmp/nfc225.patch
+            git apply --whitespace=nowarn /tmp/nfc225.patch || \
+              git apply --3way --whitespace=nowarn /tmp/nfc225.patch
+          fi
+          # 校验：Makefile 存在 + 11 个文件齐全
+          test -f "$NFC_PKG/Makefile" || { echo "FAIL NFC 包 Makefile 缺失"; exit 1; }
+          grep -q 'PKG_NAME:=luci-app-xiaomi-nfc' "$NFC_PKG/Makefile" || { echo "FAIL NFC Makefile 内容不符"; exit 1; }
+          NFC_COUNT=$(find "$NFC_PKG" -type f | wc -l)
+          echo "NFC 包注入完成: $NFC_COUNT 个文件"
+          if [ "$NFC_COUNT" -lt 11 ]; then echo "FAIL NFC 包文件不足 11 个"; exit 1; fi
+
       - name: Custom Settings
         run: |
           cd ./wrt/
