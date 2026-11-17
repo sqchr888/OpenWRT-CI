@@ -72,7 +72,7 @@ UPDATE_PACKAGE "mosdns" "sbwml/luci-app-mosdns" "v5" "" "v2dat"
 # UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"  # BE10000 自定义：移除（网盘挂载）
 # UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"  # BE10000 自定义：移除（BT 下载）
 UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"
-UPDATE_PACKAGE "adzero" "slobys/AdZero" "main"  # BE10000 自定义：新增 AdZero 广告拦截
+# UPDATE_PACKAGE "adzero" "slobys/AdZero" "main"  # BE10000 自定义：移除 AdZero 广告拦截(改由 honk-strong 的 honk-ads 承担)
 
 # UPDATE_PACKAGE "ddns-go" "sirpdboy/luci-app-ddns-go" "main"  # BE10000 自定义：移除（DDNS）
 UPDATE_PACKAGE "netspeedtest" "sirpdboy/netspeedtest" "main" "" "homebox ookla-speedtest"

@@ -169,10 +169,7 @@ jobs:
         run: |
           cd ./wrt/
 
-          # 添加 kenzok8/openwrt-honk 外部 feed（honk eBPF 透明代理 + luci-app-honk 界面）
-          # 必须在 feeds update -a 之前写入，否则 install -a 不会拉取这两个包
-          echo "src-git honk https://github.com/kenzok8/openwrt-honk" >> feeds.conf.default
-
+          # 原 kenzok8/openwrt-honk feed 已移除：改用 sqchr888/honk-strong 二开版（在 Custom Packages 阶段注入）
           ./scripts/feeds update -a
 
           # 引入 sqchr888/luci-app-iperf3（已汉化的 iPerf3 LuCI 界面，fork 自 Gevatter-Tod）
@@ -215,6 +212,32 @@ jobs:
           NFC_COUNT=$(find "$NFC_PKG" -type f | wc -l)
           echo "NFC 包注入完成: $NFC_COUNT 个文件"
           if [ "$NFC_COUNT" -lt 11 ]; then echo "FAIL NFC 包文件不足 11 个"; exit 1; fi
+
+          # ===== 移除 AdZero（已停用，改由 honk-strong 的 honk-ads 承担广告拦截）=====
+          # 缓存恢复可能带来旧 package 目录，显式清理，避免残留包被 defconfig 扫到
+          rm -rf ./package/AdZero ./package/adzero ./feeds/luci/applications/luci-app-adzero
+
+          # ===== 用 sqchr888/honk-strong 替换原 kenzok8/openwrt-honk =====
+          # honk-strong = 增强版 honk（v0.1.0-beta.6）：geosite overlay 广告拦截(honk-ads)
+          #   + DNS 分流 + 中文 LuCI，正好接替 AdZero + mosdns 的角色。
+          # 该仓库不是 feed 布局：OpenWrt 包在 firmware/honk-strong/（PKG_NAME:=honk-strong，
+          #   PROVIDES:=honk / CONFLICTS:=honk），故直接放进 ./package/ 由 defconfig 扫描。
+          # Makefile 强制要求预编译 core：$(CURDIR)/target/aarch64-unknown-linux-musl/release/honk-core，
+          #   仓库无 release 二进制，故从 sqchr888/honk-strong 的 release tag
+          #   fw-aarch64-20261118 下载（本地 aarch64 musl 构建产物，已验 sha256）；
+          #   特意用非 v* tag，避免触发该仓库 release.yml 的全套重编。
+          rm -rf ./tmp-honk-strong ./package/honk-strong ./package/honk ./package/luci-app-honk ./feeds/honk
+          git clone -q --depth 1 --filter=blob:none --sparse -b main https://github.com/sqchr888/honk-strong.git ./tmp-honk-strong
+          (cd ./tmp-honk-strong && git sparse-checkout set firmware/honk-strong)
+          cp -rf ./tmp-honk-strong/firmware/honk-strong ./package/honk-strong
+          rm -rf ./tmp-honk-strong
+          mkdir -p ./package/honk-strong/target/aarch64-unknown-linux-musl/release
+          curl -fsSL --retry 3 \
+            https://github.com/sqchr888/honk-strong/releases/download/fw-aarch64-20261118/honk-core \
+            -o ./package/honk-strong/target/aarch64-unknown-linux-musl/release/honk-core
+          echo "5f5cd10ed87ffb315b8e432cdd39ef88f2d7f7034e1780ae60e7bb4a197c3f12  ./package/honk-strong/target/aarch64-unknown-linux-musl/release/honk-core" | sha256sum -c -
+          grep -q 'PKG_NAME:=honk-strong' ./package/honk-strong/Makefile || { echo "FAIL honk-strong Makefile 内容不符"; exit 1; }
+          echo "honk-strong 注入完成: $(find ./package/honk-strong -type f | wc -l) 个文件, core $(stat -c%s ./package/honk-strong/target/aarch64-unknown-linux-musl/release/honk-core) bytes"
 
       - name: Custom Settings
         run: |
