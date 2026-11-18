@@ -213,6 +213,36 @@ jobs:
           echo "NFC 包注入完成: $NFC_COUNT 个文件"
           if [ "$NFC_COUNT" -lt 11 ]; then echo "FAIL NFC 包文件不足 11 个"; exit 1; fi
 
+          # ===== 修复 luci-app-xiaomi-control 的 NFC 状态读取 ACL（真机实测发现的 bug）=====
+          # 现象：LuCI「Xiaomi Control → NFC → 运行状态」误报 "NFC 硬件不可用"，
+          #       但后台 /var/run/xiaomi-nfc.json 里 available=true、NDEF 也已正确写入。
+          # 根因：xiaomi-control.js 用 fs.read('/var/run/xiaomi-nfc.json') 读状态；
+          #       上游 ACL 只允许 /tmp/run/*，而 /var 只是软链到 /tmp，
+          #       rpcd 按路径字面匹配（不解析软链）→ 读该文件被拒 → 前端 JSON.parse('') 失败
+          #       → nfc={} → !nfc.available → 误报"硬件不可用"。
+          #       （/tmp/run/xiaomi-nfc.json 实测返回成功，/var/run/... 返回权限拒绝。）
+          # 修复：在 ACL 的 read.file 里补上字面路径 /var/run/xiaomi-nfc.json。幂等。
+          CTRL_ACL=$(find ./feeds ./package -path '*acl.d/luci-app-xiaomi-control.json' 2>/dev/null | head -1)
+          if [ -n "$CTRL_ACL" ] && ! grep -q '/var/run/xiaomi-nfc.json' "$CTRL_ACL"; then
+            sed -i 's#"/tmp/run/\*": \[ "read" \]#"/tmp/run/*": [ "read" ], "/var/run/xiaomi-nfc.json": [ "read" ]#' "$CTRL_ACL"
+            grep -q '/var/run/xiaomi-nfc.json' "$CTRL_ACL" || { echo "FAIL xiaomi-control ACL 补丁未生效"; exit 1; }
+            echo "已修补 xiaomi-control ACL: $CTRL_ACL"
+          else
+            echo "xiaomi-control ACL 已修补或未找到: ${CTRL_ACL:-<none>}"
+          fi
+
+          # ===== NFC 出厂默认：碰一下打开百度地图导航（2026-11-18 真机验证可用）=====
+          # 小米原生 luci-app-xiaomi-control 的 /usr/libexec/xiaomi-nfc.uc 原生支持
+          # mode=uri（kind='U', payload=chr(0)+text），会在开机/wireless 变化时自动
+          # 把 uri 写进 NTAG 标签，比手写标签更可靠（重启不丢、LuCI 可改）。
+          # 真机实测：iPhone 碰顶部触点 → 弹提示 → 百度地图导航到指定地址。
+          # 用 buildroot 顶层 files/ 目录注入 uci-defaults，首次启动执行一次；
+          # sysupgrade 保留配置时不重跑，不会覆盖用户后续在 LuCI 的修改。
+          mkdir -p ./files/etc/uci-defaults
+          echo 'IyEvYmluL3NoCiMg5Ye65Y6CIE5GQ++8mnVyaSDmqKHlvI/vvIznorDkuIDkuIvmiZPlvIDnmb7luqblnLDlm77lr7zoiKoKdWNpIC1xIHNldCB4aWFvbWktY29udHJvbC5zZXR0aW5ncy5uZmNfZW5hYmxlZD0xCnVjaSAtcSBzZXQgeGlhb21pLWNvbnRyb2wuc2V0dGluZ3MubmZjX21vZGU9dXJpCnVjaSAtcSBzZXQgeGlhb21pLWNvbnRyb2wuc2V0dGluZ3MubmZjX3VyaT0nYmFpZHVtYXA6Ly9tYXAvZGlyZWN0aW9uP2Rlc3RpbmF0aW9uPeaWsOayguW4guS6lOiQpeadkeadkeawkeWxheWnlOS8miZtb2RlPWRyaXZpbmcmc3JjPW5mYycKdWNpIC1xIGNvbW1pdCB4aWFvbWktY29udHJvbAojIFBSMjI1IOmCo+WllyBsdWNpLWFwcC14aWFvbWktbmZjIOWPquS8muWGmSBXUEEzIFdpRmnvvIzkuI4gdXJpIOaooeW8j+aKouWQjOS4gOmil+agh+etvu+8jAojIOecn+acuuS4iuW3suivgeWunuS8muimhuebluWvvOiIquWGheWuuSDihpIg56aB55So5YW25YaZ5YWl77yM5L2G5L+d55WZIGRldGVjdC/oj5zljZXmjqLmtYvlip/og73jgIIKdWNpIC1xIHNldCB4aWFvbWlfbmZjLnNldHRpbmdzLmVuYWJsZWQ9MAp1Y2kgLXEgY29tbWl0IHhpYW9taV9uZmMKZXhpdCAwCg==' | base64 -d > ./files/etc/uci-defaults/zz-xiaomi-nfc-nav
+          chmod 0755 ./files/etc/uci-defaults/zz-xiaomi-nfc-nav
+          echo "NFC uri 导航出厂默认已注入: $(wc -l < ./files/etc/uci-defaults/zz-xiaomi-nfc-nav) 行"
+
           # ===== 移除 AdZero（已停用，改由 honk-strong 的 honk-ads 承担广告拦截）=====
           # 缓存恢复可能带来旧 package 目录，显式清理，避免残留包被 defconfig 扫到
           rm -rf ./package/AdZero ./package/adzero ./feeds/luci/applications/luci-app-adzero
