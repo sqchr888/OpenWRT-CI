@@ -213,6 +213,16 @@ jobs:
           echo "NFC 包注入完成: $NFC_COUNT 个文件"
           if [ "$NFC_COUNT" -lt 11 ]; then echo "FAIL NFC 包文件不足 11 个"; exit 1; fi
 
+          # ===== 收敛 NFC 为「管控页一套」：隐藏 PR225 的「网络 → NFC」独立菜单 =====
+          # 真机上同时存在两套 NFC 控制，写同一颗 I2C 0x54 标签、互相覆盖，用户分不清哪个有效：
+          #   1) 管控页 luci-app-xiaomi-control（ucode xiaomi-nfc.uc，支持 uri/wifi/text，唯一保留，做成百度地图导航）
+          #   2) 网络页 luci-app-xiaomi-nfc（PR225，rpcd xiaomi.nfc，只会写 WiFi，iOS 读不了）
+          # 用户确认只保留管控页那套。这里删除 PR225 的 menu.d 入口 + 前端视图，
+          # 让「网络 → NFC」菜单彻底消失；保留包体/init/detect 不删，避免破坏编译与硬件探测。
+          rm -f "$NFC_PKG/root/usr/share/luci/menu.d/luci-app-xiaomi-nfc.json"
+          rm -f "$NFC_PKG/root/www/luci-static/resources/view/network/xiaomi-nfc.js"
+          echo "已隐藏 PR225「网络 → NFC」菜单入口，NFC 统一由管控页管理"
+
           # ===== 修复 luci-app-xiaomi-control 的 NFC 状态读取 ACL（真机实测发现的 bug）=====
           # 现象：LuCI「Xiaomi Control → NFC → 运行状态」误报 "NFC 硬件不可用"，
           #       但后台 /var/run/xiaomi-nfc.json 里 available=true、NDEF 也已正确写入。
@@ -221,14 +231,18 @@ jobs:
           #       rpcd 按路径字面匹配（不解析软链）→ 读该文件被拒 → 前端 JSON.parse('') 失败
           #       → nfc={} → !nfc.available → 误报"硬件不可用"。
           #       （/tmp/run/xiaomi-nfc.json 实测返回成功，/var/run/... 返回权限拒绝。）
-          # 修复：在 ACL 的 read.file 里补上字面路径 /var/run/xiaomi-nfc.json。幂等。
-          CTRL_ACL=$(find ./feeds ./package -path '*acl.d/luci-app-xiaomi-control.json' 2>/dev/null | head -1)
-          if [ -n "$CTRL_ACL" ] && ! grep -q '/var/run/xiaomi-nfc.json' "$CTRL_ACL"; then
-            sed -i 's#"/tmp/run/\*": \[ "read" \]#"/tmp/run/*": [ "read" ], "/var/run/xiaomi-nfc.json": [ "read" ]#' "$CTRL_ACL"
+          # 修复：直接用权威源文件覆盖 ACL（与 Scripts/Settings.sh 同一份 Config/xiaomi-control-acl/）。
+          # 注意：上游 ACL 的 file 列表是紧凑格式，早先用 sed 精确匹配 "read" ] 会因格式不符静默失败；
+          # 且 Settings.sh 稍后会用同一份源再覆盖一次。这里改为 cp 权威源，幂等且两处一致。
+          CTRL_ACL=$(find ./feeds ./package -path '*rpcd/acl.d/luci-app-xiaomi-control.json' 2>/dev/null | head -1)
+          CTRL_ACL_SRC="$GITHUB_WORKSPACE/Config/xiaomi-control-acl/luci-app-xiaomi-control.json"
+          if [ -n "$CTRL_ACL" ] && [ -f "$CTRL_ACL_SRC" ]; then
+            cp -f "$CTRL_ACL_SRC" "$CTRL_ACL"
+            chmod 644 "$CTRL_ACL"
             grep -q '/var/run/xiaomi-nfc.json' "$CTRL_ACL" || { echo "FAIL xiaomi-control ACL 补丁未生效"; exit 1; }
-            echo "已修补 xiaomi-control ACL: $CTRL_ACL"
+            echo "已修补 xiaomi-control ACL(权威源覆盖): $CTRL_ACL"
           else
-            echo "xiaomi-control ACL 已修补或未找到: ${CTRL_ACL:-<none>}"
+            echo "xiaomi-control ACL 未找到源/目标: src=${CTRL_ACL_SRC:-<none>} dst=${CTRL_ACL:-<none>}"
           fi
 
           # ===== NFC 出厂默认：碰一下打开百度地图导航（2026-11-18 真机验证可用）=====
