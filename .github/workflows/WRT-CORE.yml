@@ -245,17 +245,18 @@ jobs:
             echo "xiaomi-control ACL 未找到源/目标: src=${CTRL_ACL_SRC:-<none>} dst=${CTRL_ACL:-<none>}"
           fi
 
-          # ===== NFC 出厂默认：碰一下打开百度地图导航（2026-11-18 真机验证可用）=====
+          # ===== NFC 出厂默认：功能可用但默认关闭、内容留空（不写任何私人地址）=====
           # 小米原生 luci-app-xiaomi-control 的 /usr/libexec/xiaomi-nfc.uc 原生支持
-          # mode=uri（kind='U', payload=chr(0)+text），会在开机/wireless 变化时自动
-          # 把 uri 写进 NTAG 标签，比手写标签更可靠（重启不丢、LuCI 可改）。
-          # 真机实测：iPhone 碰顶部触点 → 弹提示 → 百度地图导航到指定地址。
+          # mode=uri/wifi/text，会在开机/wireless 变化时自动把内容写进 NTAG 标签
+          # （比手写标签可靠：重启不丢、LuCI 可改）。真机已验证碰一下可弹提示并导航。
+          # 出于隐私，出厂不预置任何导航地址/个人信息：nfc_enabled=0、nfc_uri 留空；
+          # 用户刷机后自行在 LuCI「管控 → Xiaomi Control → NFC」启用并填写。
           # 用 buildroot 顶层 files/ 目录注入 uci-defaults，首次启动执行一次；
           # sysupgrade 保留配置时不重跑，不会覆盖用户后续在 LuCI 的修改。
           mkdir -p ./files/etc/uci-defaults
-          echo 'IyEvYmluL3NoCiMg5Ye65Y6CIE5GQ++8mnVyaSDmqKHlvI/vvIznorDkuIDkuIvmiZPlvIDnmb7luqblnLDlm77lr7zoiKoKdWNpIC1xIHNldCB4aWFvbWktY29udHJvbC5zZXR0aW5ncy5uZmNfZW5hYmxlZD0xCnVjaSAtcSBzZXQgeGlhb21pLWNvbnRyb2wuc2V0dGluZ3MubmZjX21vZGU9dXJpCnVjaSAtcSBzZXQgeGlhb21pLWNvbnRyb2wuc2V0dGluZ3MubmZjX3VyaT0nYmFpZHVtYXA6Ly9tYXAvZGlyZWN0aW9uP2Rlc3RpbmF0aW9uPeaWsOayguW4guS6lOiQpeadkeadkeawkeWxheWnlOS8miZtb2RlPWRyaXZpbmcmc3JjPW5mYycKdWNpIC1xIGNvbW1pdCB4aWFvbWktY29udHJvbAojIFBSMjI1IOmCo+WllyBsdWNpLWFwcC14aWFvbWktbmZjIOWPquS8muWGmSBXUEEzIFdpRmnvvIzkuI4gdXJpIOaooeW8j+aKouWQjOS4gOmil+agh+etvu+8jAojIOecn+acuuS4iuW3suivgeWunuS8muimhuebluWvvOiIquWGheWuuSDihpIg56aB55So5YW25YaZ5YWl77yM5L2G5L+d55WZIGRldGVjdC/oj5zljZXmjqLmtYvlip/og73jgIIKdWNpIC1xIHNldCB4aWFvbWlfbmZjLnNldHRpbmdzLmVuYWJsZWQ9MAp1Y2kgLXEgY29tbWl0IHhpYW9taV9uZmMKZXhpdCAwCg==' | base64 -d > ./files/etc/uci-defaults/zz-xiaomi-nfc-nav
+          echo 'IyEvYmluL3NoCiMg5Ye65Y6CIE5GQyDpu5jorqTlhbPpl63jgIHlhoXlrrnnlZnnqbrvvJrkuI3pooTnva7ku7vkvZXlr7zoiKrlnLDlnYAv56eB5Lq65L+h5oGv44CCCiMg55So5oi35Y+v5ZyoIEx1Q0njgIznrqHmjqcg4oaSIFhpYW9taSBDb250cm9sIOKGkiBORkPjgI3oh6rooYzlkK/nlKjlubbloavlhpkgdXJpL3dpZmkvdGV4dOOAggp1Y2kgLXEgc2V0IHhpYW9taS1jb250cm9sLnNldHRpbmdzLm5mY19lbmFibGVkPTAKdWNpIC1xIHNldCB4aWFvbWktY29udHJvbC5zZXR0aW5ncy5uZmNfbW9kZT11cmkKdWNpIC1xIHNldCB4aWFvbWktY29udHJvbC5zZXR0aW5ncy5uZmNfdXJpPScnCnVjaSAtcSBjb21taXQgeGlhb21pLWNvbnRyb2wKIyBQUjIyNSDpgqPlpZcgbHVjaS1hcHAteGlhb21pLW5mYyjoj5zljZXlt7LpmpDol48p5L+d5oyB5YaZ5YWl5YWz6Zet77yM6YG/5YWN5LiO566h5o6n6aG15oqi5ZCM5LiA6aKX5qCH562+44CCCnVjaSAtcSBzZXQgeGlhb21pX25mYy5zZXR0aW5ncy5lbmFibGVkPTAKdWNpIC1xIGNvbW1pdCB4aWFvbWlfbmZjCmV4aXQgMAo=' | base64 -d > ./files/etc/uci-defaults/zz-xiaomi-nfc-nav
           chmod 0755 ./files/etc/uci-defaults/zz-xiaomi-nfc-nav
-          echo "NFC uri 导航出厂默认已注入: $(wc -l < ./files/etc/uci-defaults/zz-xiaomi-nfc-nav) 行"
+          echo "NFC 出厂默认(关闭/留空)已注入: $(wc -l < ./files/etc/uci-defaults/zz-xiaomi-nfc-nav) 行"
 
           # ===== 移除 AdZero（已停用，改由 honk-strong 的 honk-ads 承担广告拦截）=====
           # 缓存恢复可能带来旧 package 目录，显式清理，避免残留包被 defconfig 扫到
